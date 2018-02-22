@@ -163,7 +163,8 @@ public:
         lastTimepoint_ = newTimepoint;
         double fps = 1.0 / frameDuration_;
 
-        printf("FPS: %3.1f (%3.4Lf ms)\n", fps, frameDuration_ * 1000);
+        // mycode
+        // printf("FPS: %3.1f (%3.4Lf ms)\n", fps, frameDuration_ * 1000);
     }
 
     void processDepth(astra::Frame& frame)
@@ -219,10 +220,23 @@ public:
         {
             printf("Processing frame #%d body %d left hand: %u\n",
                 bodyFrame.frame_index(), body.id(), unsigned(body.hand_poses().left_hand()));
+            // std::cout << "start..." << std::endl;
             for(auto& joint : body.joints())
             {
+                // mycode
+                // std::cout << "joint type " << static_cast<int>(joint.type()) << std::endl;
+                if (static_cast<int>(joint.type()) == 6) {
+                    std::cout << "THIS IS RIGHT ELBOW" << std::endl;
+                    std::cout << joint.world_position().x << std::endl;
+                    std::cout << joint.world_position().y << std::endl;
+                    std::cout << joint.world_position().z << std::endl;
+                }
+
+
                 jointPositions_.push_back(joint.depth_position());
             }
+
+            // std::cout << "end..." << std::endl;
 
             update_body(body, jointScale);
         }
