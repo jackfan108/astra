@@ -218,23 +218,58 @@ public:
 
         for (auto& body : bodies)
         {
-            printf("Processing frame #%d body %d left hand: %u\n",
-                bodyFrame.frame_index(), body.id(), unsigned(body.hand_poses().left_hand()));
+            // printf("Processing frame #%d body %d left hand: %u\n",
+            //    bodyFrame.frame_index(), body.id(), unsigned(body.hand_poses().left_hand()));
             // std::cout << "start..." << std::endl;
+
             for(auto& joint : body.joints())
             {
                 // mycode
                 // std::cout << "joint type " << static_cast<int>(joint.type()) << std::endl;
-                if (static_cast<int>(joint.type()) == 6) {
-                    std::cout << "THIS IS RIGHT ELBOW" << std::endl;
-                    std::cout << joint.world_position().x << std::endl;
-                    std::cout << joint.world_position().y << std::endl;
-                    std::cout << joint.world_position().z << std::endl;
-                }
-
+                // 6 is right elbow
+                //if (static_cast<int>(joint.type()) == 6) {
+                    // right_elbow_y = joint.world_position().y;
+                    // printf("Right elbow:  X -- %d , Y -- %d , Z -- %d ", joint.world_position().x, joint.world_position().y, joint.world_position().z);
+                    // std::cout << "THIS IS RIGHT ELBOW: " << std::endl;
+                    // std::cout << joint.world_position().x << std::endl;
+                    // std::cout << joint.world_position().y << std::endl;
+                    // std::cout << joint.world_position().z << std::endl;
+                //}
+                // 7 is right hand
+                //else if (static_cast<int>(joint.type()) == 7) {
+                //    right_hand_y = joint.world_position().y;
+                //}
+                //if (right_hand_y <= right_elbow_y) {
+                //    std::cout << "hand down..." << std::endl;
+                //}
+                //else {
+                //    std::cout << "HAND UP BOOOOOOOOM" << std::endl;
+                //}
+                //hand_elbow_distance = 
+                //max_hand_elbow_distance = max_hand_elbow_distance
 
                 jointPositions_.push_back(joint.depth_position());
             }
+
+            auto& right_shoulder_joint = body.joints()[5];
+            auto& right_elbow_joint = body.joints()[6];
+            auto& right_hand_joint = body.joints()[7];
+            float shoulder_hand_distance = astra::Joint::joint_distance(right_shoulder_joint.world_position(), right_hand_joint.world_position());
+            // printf("hand elbow distance: %.5f", shoulder_hand_distance);
+
+            if (shoulder_hand_distance <= 250 && curl_state == 0) {
+                curl_state = 1;
+            }
+            else if (shoulder_hand_distance >= 450 && curl_state == 1) {
+                curl_state = 0;
+                rep_count++;
+            }
+            printf("rep count: %d\n", rep_count);
+            // hand elbow distance should be between > 500 and < 250
+
+            
+
+
 
             // std::cout << "end..." << std::endl;
 
@@ -280,7 +315,7 @@ public:
             auto radius = jointRadius_ * jointScale; // pixels
             sf::Color circleShadowColor(0, 0, 0, 255);
 
-             auto color = sf::Color(0x00, 0xFF, 0x00, 0xFF);
+            auto color = sf::Color(0x00, 0xFF, 0x00, 0xFF);
 
             if ((type == astra::JointType::LeftHand && astra::HandPose::Grip==body.hand_poses().left_hand()) ||
                 (type == astra::JointType::RightHand &&  astra::HandPose::Grip==body.hand_poses().right_hand()))
@@ -505,6 +540,10 @@ private:
     sf::Texture overlayTexture_;
     sf::Sprite overlaySprite_;
 
+    // mycode
+    int curl_state = 0;
+    int rep_count = 0;
+    float max_hand_elbow_distance = 0;
 };
 
 astra::DepthStream configure_depth(astra::StreamReader& reader)

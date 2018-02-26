@@ -26,6 +26,7 @@
 #include <astra/Array.hpp>
 #include <astra/Vector.hpp>
 #include <astra/Matrix3x3.hpp>
+#include <cmath>
 
 namespace astra {
 
@@ -171,6 +172,14 @@ namespace astra {
         {
             return *static_cast<const Vector3f*>(&(::astra_joint_t::worldPosition));
         }
+
+        static float joint_distance(const Vector3f& j1, const Vector3f& j2) {
+            float x_diff = j1.x - j2.x;
+            float y_diff = j1.y - j2.y;
+            float z_diff = j1.z - j2.z;
+            return pow(pow(x_diff, 2) + pow(y_diff, 2) + pow(z_diff, 2), 0.5);
+        }
+
 
         /*! \brief Gets the 3x3 Rotation matrix representing the rotation of this joint.*/
         const Matrix3x3& orientation() const
