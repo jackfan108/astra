@@ -20,6 +20,7 @@
 #include <cstring>
 #include <fstream>
 using namespace std;
+
 class sfLine : public sf::Drawable
 
 {
@@ -201,8 +202,10 @@ public:
     }
 
     void toggleDataCollection() {
+        if (collecting) {
+            data_count++;
+        }
         collecting = !collecting;
-        printf("collecting: %d\n", collecting);
     }
 
     void processBodies(astra::Frame& frame)
@@ -217,8 +220,12 @@ public:
         boneShadows_.clear();
 
         ofstream file;
-        file.open("test_data.txt", ios_base::app);
-
+        string file_name = "squat";
+        file_name.append(to_string(data_count));
+        file_name.append(".csv");
+        file.open(file_name, ios_base::app);
+        string data = "";
+        
         if (!bodyFrame.is_valid())
         {
             clear_overlay();
@@ -236,9 +243,12 @@ public:
             for(auto& joint : body.joints())
             {
                 // write the x1,y1,z1,x2,y2,z2, etc. (for 20 joins) to file as one line
-                char *data;
-                sprintf(data, "%f, %f, %f, ", joint.world_position().x, joint.world_position().y, joint.world_position().z);
-                file << data;
+                if (collecting) {
+                    char *joint_data;
+                    sprintf(joint_data, "%f, %f, %f, ", joint.world_position().x, joint.world_position().y, joint.world_position().z);
+                    data.append(joint_data);
+                }
+
                 // mycode
                 // std::cout << "joint type " << static_cast<int>(joint.type()) << std::endl;
                 // 6 is right elbow
@@ -265,8 +275,10 @@ public:
 
                 jointPositions_.push_back(joint.depth_position());
             }
-
-            file << endl;
+            
+            if (data != "") {
+                file << data.substr(0, data.size() - 2) << endl;
+            }
             file.close();
 
             auto& right_shoulder_joint = body.joints()[5];
@@ -282,18 +294,9 @@ public:
                 curl_state = 0;
                 rep_count++;
             }
-            //printf("rep count: %d\n", rep_count);
-            //char *data;
-            //sprintf(data,"rep count: %d\n", rep_count);
-            //write_to_file(data);
 
 
             // hand elbow distance should be between > 500 and < 250
-
-            
-
-
-
             // std::cout << "end..." << std::endl;
 
             update_body(body, jointScale);
@@ -569,6 +572,7 @@ private:
     float max_hand_elbow_distance = 0;
 
     bool collecting = false;
+    int data_count = 1;
 };
 
 astra::DepthStream configure_depth(astra::StreamReader& reader)
@@ -608,8 +612,11 @@ int main(int argc, char** argv)
     astra::StreamReader reader = sensor.create_reader();
 
     BodyVisualizer listener;
+
+    // clean up test_data.csv content
     ofstream file;
-    file.open("test_data.txt");
+    
+    file.open("test_data.csv");
     file << endl;
     file.close();
 
@@ -660,6 +667,7 @@ int main(int argc, char** argv)
                     depthStream.enable_mirroring(!depthStream.mirroring_enabled());
                     break;
                 case sf::Keyboard::Space:
+                    // this is used to start/stop data collection   
                     printf("SPACE PRESSED");
                     listener.toggleDataCollection();
                     break;
