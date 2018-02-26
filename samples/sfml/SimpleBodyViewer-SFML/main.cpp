@@ -18,7 +18,10 @@
 #include <astra/astra.hpp>
 #include <iostream>
 #include <cstring>
+#include <fstream>
+using namespace std;
 class sfLine : public sf::Drawable
+
 {
 public:
     sfLine(const sf::Vector2f& point1, const sf::Vector2f& point2, sf::Color color, float thickness)
@@ -156,7 +159,7 @@ public:
     {
         double fpsFactor = 0.02;
 
-        std::clock_t newTimepoint= std::clock();
+        std::clock_t newTimepoint = std::clock();
         long double frameDuration = (newTimepoint - lastTimepoint_) / static_cast<long double>(CLOCKS_PER_SEC);
 
         frameDuration_ = frameDuration * fpsFactor + frameDuration_ * (1 - fpsFactor);
@@ -177,9 +180,9 @@ public:
         init_depth_texture(width, height);
 
         const int16_t* depthPtr = depthFrame.data();
-        for(int y = 0; y < height; y++)
+        for (int y = 0; y < height; y++)
         {
-            for(int x = 0; x < width; x++)
+            for (int x = 0; x < width; x++)
             {
                 int index = (x + y * width);
                 int index4 = index * 4;
@@ -197,6 +200,11 @@ public:
         texture_.update(displayBuffer_.get());
     }
 
+    void toggleDataCollection() {
+        collecting = !collecting;
+        printf("collecting: %d\n", collecting);
+    }
+
     void processBodies(astra::Frame& frame)
     {
         const float jointScale = depthWidth_ / 120.f;
@@ -207,6 +215,9 @@ public:
         circleShadows_.clear();
         boneLines_.clear();
         boneShadows_.clear();
+
+        ofstream file;
+        file.open("test_data.txt", ios_base::app);
 
         if (!bodyFrame.is_valid())
         {
@@ -224,11 +235,15 @@ public:
 
             for(auto& joint : body.joints())
             {
+                // write the x1,y1,z1,x2,y2,z2, etc. (for 20 joins) to file as one line
+                char *data;
+                sprintf(data, "%f, %f, %f, ", joint.world_position().x, joint.world_position().y, joint.world_position().z);
+                file << data;
                 // mycode
                 // std::cout << "joint type " << static_cast<int>(joint.type()) << std::endl;
                 // 6 is right elbow
                 //if (static_cast<int>(joint.type()) == 6) {
-                    // right_elbow_y = joint.world_position().y;
+
                     // printf("Right elbow:  X -- %d , Y -- %d , Z -- %d ", joint.world_position().x, joint.world_position().y, joint.world_position().z);
                     // std::cout << "THIS IS RIGHT ELBOW: " << std::endl;
                     // std::cout << joint.world_position().x << std::endl;
@@ -251,6 +266,9 @@ public:
                 jointPositions_.push_back(joint.depth_position());
             }
 
+            file << endl;
+            file.close();
+
             auto& right_shoulder_joint = body.joints()[5];
             auto& right_elbow_joint = body.joints()[6];
             auto& right_hand_joint = body.joints()[7];
@@ -264,7 +282,12 @@ public:
                 curl_state = 0;
                 rep_count++;
             }
-            printf("rep count: %d\n", rep_count);
+            //printf("rep count: %d\n", rep_count);
+            //char *data;
+            //sprintf(data,"rep count: %d\n", rep_count);
+            //write_to_file(data);
+
+
             // hand elbow distance should be between > 500 and < 250
 
             
@@ -277,14 +300,14 @@ public:
         }
 
         const auto& floor = bodyFrame.floor_info(); //floor
-        if (floor.floor_detected())
-        {
-            const auto& p = floor.floor_plane();
-            std::cout << "Floor plane: ["
-                << p.a() << ", " << p.b() << ", " << p.c() << ", " << p.d()
-                << "]" << std::endl;
+        //if (floor.floor_detected())
+        //{
+        //    const auto& p = floor.floor_plane();
+        //    std::cout << "Floor plane: ["
+        //        << p.a() << ", " << p.b() << ", " << p.c() << ", " << p.d()
+        //        << "]" << std::endl;
 
-        }
+        //}
 
         const auto& bodyMask = bodyFrame.body_mask();
         const auto& floorMask = floor.floor_mask();
@@ -544,6 +567,8 @@ private:
     int curl_state = 0;
     int rep_count = 0;
     float max_hand_elbow_distance = 0;
+
+    bool collecting = false;
 };
 
 astra::DepthStream configure_depth(astra::StreamReader& reader)
@@ -583,6 +608,10 @@ int main(int argc, char** argv)
     astra::StreamReader reader = sensor.create_reader();
 
     BodyVisualizer listener;
+    ofstream file;
+    file.open("test_data.txt");
+    file << endl;
+    file.close();
 
     auto depthStream = configure_depth(reader);
     depthStream.start();
@@ -629,6 +658,10 @@ int main(int argc, char** argv)
                     break;
                 case sf::Keyboard::M:
                     depthStream.enable_mirroring(!depthStream.mirroring_enabled());
+                    break;
+                case sf::Keyboard::Space:
+                    printf("SPACE PRESSED");
+                    listener.toggleDataCollection();
                     break;
                 default:
                     break;
